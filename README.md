@@ -1,6 +1,8 @@
 
 
 # Anime Downloader For Termux
+![demo](https://cdn.discordapp.com/attachments/649733488299475007/723982591186960464/videotogif_2020.06.20_20.24.06.gif)
+
 This project was a quick script made to combine [anime-downloader](https://github.com/vn-ki/anime-downloader) with certain GUI features from [termux-api](https://play.google.com/store/apps/details?id=com.termux.api)
 
 This project must be used in [termux](https://play.google.com/store/apps/details?id=com.termux)
