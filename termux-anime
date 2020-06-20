@@ -55,7 +55,6 @@ def traverse_json(data, previous='Option'):
 def config():
     traverse_json(Config._CONFIG)
     Config.write()
-    exit()
 
 def download(anime, download_dir):
     toast = "termux-toast"
