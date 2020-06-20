@@ -9,7 +9,7 @@ This project must be used in [termux](https://play.google.com/store/apps/details
 
 ## Installation
 
-To install this project, run `pip install -U git+https://github.com/AbdullahM0hamed/anime-downloader-termux`. You will also need to install [termux:API](https://play.google.com/store/apps/details?id=com.termux.api) from the playstore as well as install the termux-api package using: `pkg install termux-api`.
+To install this project, run `pip install -U git+https://github.com/AbdullahM0hamed/anime-downloader-termux.git`. You will also need to install [termux:API](https://play.google.com/store/apps/details?id=com.termux.api) from the playstore as well as install the termux-api package using: `pkg install termux-api`.
 
 ## Usage
 
