@@ -61,9 +61,9 @@ def download(anime, download_dir):
     bg = Config._CONFIG["gui"]["toast-background"]
     fg = Config._CONFIG["gui"]["toast-foreground"]
 
-    if bg != "default":
+    if bg != "default" and bg != "":
         toast += f" -b {bg}"
-    if fg != "default":
+    if fg != "default" and fg != "":
         toast += f" -c {fg}"
 
     toast += " {} has downloaded successfully"
