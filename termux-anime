@@ -80,7 +80,7 @@ def download(anime, download_dir):
             except RequestException:
                 error = 1
 
-        subprocess.getoutput(toast.format(anime.title))
+    subprocess.getoutput(toast.format(anime.title))
 
 
 def dl():
