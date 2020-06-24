@@ -82,16 +82,29 @@ def download(anime, download_dir):
 
     subprocess.getoutput(toast.format(anime.title))
 
+def streamToPlayer(anime):
+    for episode in anime:
+        subprocess.getoutput(f"am start -a android.intent.action.VIEW -d '{episode.source().stream_url}' -t video/*")
+        input("Hit enter to continue...")
 
-def dl():
+def dl(stream = False):
     name = dialog(title = "Input Search", hint = "e.g Naruto")["text"]
 
-    options = ["quality", "provider", "download_dir", "episode range"]
-    choices = [x["index"] for x in dialog(dialogType = "checkbox", output = options, title = "Select Options")["values"]]
+    options = ["quality", "provider", "download_dir", "episode range"] if not stream else ["quality", "provider", "episode range"]
+
+    choices = []
+    try:
+        choices = [x["index"] for x in dialog(dialogType = "checkbox", output = options, title = "Select Options")["values"]]
+    except KeyError:
+        pass
+
     quality = Config._CONFIG["dl"]["quality"]
     provider = Config._CONFIG["dl"]["provider"]
     download_dir = Config._CONFIG["dl"]["download_dir"]
     file_format = Config._CONFIG["dl"]["file_format"]
+
+    if stream and len(choices) != 0:
+        choices = [x if x != 2 else 3 for x in choices]
 
     if 0 in choices:
         quality = dialog(dialogType = "radio", output = ["360p", "480p", "720p", "1080p"])["text"]
@@ -110,8 +123,13 @@ def dl():
         selected_eps = [x["index"] for x in dialog(dialogType = "checkbox", output = eps, title = "Select Episode Range")["values"]]
         anime = anime[selected_eps[0]:selected_eps[-1] + 1]
 
-    download(anime, download_dir)
+    if stream:
+        streamToPlayer(anime)
+    else:
+        download(anime, download_dir)
 
+def watch():
+    dl(stream = True)
 
 
 if "gui" not in Config._CONFIG.keys():
@@ -122,8 +140,8 @@ if "gui" not in Config._CONFIG.keys():
     Config._CONFIG["dl"]["download_dir"] = "/sdcard/Video"
     Config.write()
 
-arg = dialog(dialogType = "radio", output = ["Download", "Config"], title = "Select Option")["text"]
-mapped = {"Download": "dl", "Config": "config"}
+arg = dialog(dialogType = "radio", output = ["Download", "Watch", "Config"], title = "Select Option")["text"]
+mapped = {"Download": "dl", "Config": "config", "Watch": "watch"}
 
 arg = mapped[arg]
 
