@@ -13,7 +13,7 @@ def dialog(output = "", dialogType = "", title = "", hint = ""):
 
     if type(output) == list:
         argList += ",".join([x.replace(',', '\\,').replace('"', '\\\"') for x in output]) + " "
-        argList = f"-v '{argList}' "
+        argList = f'-v "{argList}" '
 
     if title:
         argList += f"-t '{title}' "
