@@ -14,7 +14,7 @@ To install this project, run `pip install -U git+https://github.com/AbdullahM0ha
 ## Features
 A semi GUI on android devices
 
-[Ability to share anime links to termux](https://cdn.discordapp.com/attachments/484718221992132629/725867845677744139/videotogif_2020.06.26_01.16.21.gif) 
+[Ability to share anime links to termux](https://cdn.discordapp.com/attachments/484718221992132629/725867845677744139/videotogif_2020.06.26_01.16.21.gif) (probably needs more testing at the moment)
 
 ## Usage
 
