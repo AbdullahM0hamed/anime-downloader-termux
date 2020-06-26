@@ -18,4 +18,4 @@ A semi GUI on android devices
 
 ## Usage
 
-To use this project, run `termux-anime` and follow the dialog prompts.
+To use this project, run `termux-anime` and follow the dialog prompts. To share a link from one of the supported sites (check https://github.com/vn-ki/anime-downloader's README for supported sites) simply share the link to termux.
