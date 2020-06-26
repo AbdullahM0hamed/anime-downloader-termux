@@ -21,7 +21,7 @@ except FileExistsError:
     if os.path.exists(f"{bin_dir}/termux-url-opener"):
         #For some reason, if user doesn't have termux-url-opener, it creates the one I want then runs again and copies that to termux-url-opener-2
         new = open("termux-url-opener").read()
-        current = open(f"{bin_dir}").read()
+        current = open(f"{bin_dir}/termux-url-opener").read()
 
         if current != new:
             os.rename(f"{bin_dir}/termux-url-opener", f"{bin_dir}/termux-url-opener-2")
