@@ -1,0 +1,13 @@
+#!/data/data/com.termux/files/usr/bin/python
+
+from anime_downloader import get_anime_class
+import subprocess
+import json
+import sys
+
+cls = get_anime_class(sys.argv[1])
+
+if not cls:
+    subprocess.call(["/data/data/com.termux/files/home/bin/termux-url-opener-2", sys.argv[1]])
+else:
+    subprocess.getoutput(f"termux-anime {sys.argv[1]}")

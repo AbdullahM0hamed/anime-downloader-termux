@@ -1,7 +1,8 @@
-#!/usr/bin/env python3
+#!/data/data/com.termux/files/usr/bin/python
 
 import subprocess
 import json
+import sys
 from anime_downloader.config import Config
 from anime_downloader.sites import get_anime_class, ALL_ANIME_SITES
 from requests.exceptions import RequestException
@@ -87,10 +88,14 @@ def streamToPlayer(anime):
         subprocess.getoutput(f"am start -a android.intent.action.VIEW -d '{episode.source().stream_url}' -t video/*")
         input("Hit enter to continue...")
 
-def dl(stream = False):
-    name = dialog(title = "Input Search", hint = "e.g Naruto")["text"]
+def dl(stream = False, link = None):
+    if not link:
+        name = dialog(title = "Input Search", hint = "e.g Naruto")["text"]
 
     options = ["quality", "provider", "download_dir", "episode range"] if not stream else ["quality", "provider", "episode range"]
+    
+    if link:
+        options.pop(options.index("provider"))
 
     choices = []
     try:
@@ -103,6 +108,8 @@ def dl(stream = False):
     download_dir = Config._CONFIG["dl"]["download_dir"]
     file_format = Config._CONFIG["dl"]["file_format"]
 
+    if link and len(choices):
+        choices = [x if x == 0 else x + 1 for x in choices]
     if stream and len(choices) != 0:
         choices = [x if x != 2 else 3 for x in choices]
 
@@ -113,10 +120,14 @@ def dl(stream = False):
     if 2 in choices:
         download_dir = dialog(title = "Enter Download Directory", hint = "/sdcard/Video")["text"]
 
-    cls = get_anime_class(provider)
-    results = cls.search(name)
-    selected = dialog(dialogType = "radio", output = [x.title for x in results], title = "Anime")["index"]
-    anime = cls(results[selected].url, quality = quality)
+    if link:
+        cls = get_anime_class(link)
+        anime = cls(link)
+    else:
+        cls = get_anime_class(provider)
+        results = cls.search(name)
+        selected = dialog(dialogType = "radio", output = [x.title for x in results], title = "Anime")["index"]
+        anime = cls(results[selected].url, quality = quality)
 
     if 3 in choices:
         eps = [f"Episode {x}" for x in range(1, len(anime) + 1)]
@@ -128,9 +139,11 @@ def dl(stream = False):
     else:
         download(anime, download_dir)
 
-def watch():
-    dl(stream = True)
-
+def watch(link = None):
+    #if link:
+     #  dl(stream = True, link = link)
+    #else:
+    dl(stream = True, link = link)
 
 if "gui" not in Config._CONFIG.keys():
     Config._CONFIG["gui"] = {
@@ -142,8 +155,10 @@ if "gui" not in Config._CONFIG.keys():
 
 arg = dialog(dialogType = "radio", output = ["Download", "Watch", "Config"], title = "Select Option")["text"]
 mapped = {"Download": "dl", "Config": "config", "Watch": "watch"}
-
 arg = mapped[arg]
-
 method = eval(arg)
-method()
+
+if len(sys.argv) == 1:
+    method()
+else:
+    method(link = sys.argv[1])
