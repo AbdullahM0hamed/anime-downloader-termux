@@ -1,4 +1,4 @@
-#!/data/data/com.termux/files/usr/bin/python
+#!/data/data/com.termux/files/usr/bin/python3
 
 import subprocess
 import json
@@ -8,6 +8,7 @@ import sys
 from anime_downloader.config import Config
 from anime_downloader.sites import get_anime_class, ALL_ANIME_SITES
 from requests.exceptions import RequestException
+from requests import session
 
 boolean = {"yes": True, "no": False}
 
@@ -82,6 +83,10 @@ def download(anime, download_dir):
                     subprocess.getoutput(toast.format(name))
             except RequestException:
                 error = 1
+                cls = get_anime_class(anime.sitename)
+                newAnime = cls(anime.url)
+                episode = newAnime[episode.ep_no - 1]
+
 
     subprocess.getoutput(toast.format(anime.title))
 
