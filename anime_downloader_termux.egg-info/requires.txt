@@ -1,0 +1,1 @@
+anime-downloader@ git+https://github.com/vn-ki/anime-downloader

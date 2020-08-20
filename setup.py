@@ -3,6 +3,7 @@
 from setuptools import setup
 from shutil import copyfile
 import os
+import subprocess
 
 setup(
     name='anime-downloader-termux',
@@ -27,3 +28,12 @@ except FileExistsError:
             os.rename(f"{bin_dir}/termux-url-opener", f"{bin_dir}/termux-url-opener-2")
 
 copyfile("termux-url-opener", f"{bin_dir}/termux-url-opener")
+
+app_not_installed = subprocess.getoutput("am startservice -a android.service.notification.NotificationListenerService com.termux.api | grep 'Error: Not found; no service started.'")
+pkg_installed = subprocess.getoutput("pkg list-installed 2>&1 | grep termux-api")
+
+if not pkg_installed:
+    subprocess.getoutput("apt install -y termux-api")
+
+if app_not_installed:
+    subprocess.getoutput("am start -a android.intent.action.VIEW -d 'market://details?id=com.termux.api' com.android.vending")

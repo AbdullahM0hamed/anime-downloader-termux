@@ -1,0 +1,211 @@
+#!/data/data/com.termux/files/usr/bin/python
+
+import subprocess
+import json
+import re
+import os
+import sys
+from anime_downloader.config import Config
+from anime_downloader.sites import get_anime_class, ALL_ANIME_SITES
+from requests.exceptions import RequestException
+from requests import session
+
+boolean = {"yes": True, "no": False}
+
+def dialog(output = "", dialogType = "", title = "", hint = ""):
+    argList = " "
+
+    if type(output) == list:
+        argList += ",".join([x.replace(',', '\\,').replace('"', '\\\"') for x in output]) + " "
+        argList = f'-v "{argList}" '
+
+    if title:
+        argList += f"-t '{title}' "
+
+    if hint:
+        argList += f"-i '{hint}'"
+
+    return json.loads(subprocess.getoutput(f"termux-dialog {dialogType} {argList}"))
+
+def traverse_json(data, previous='Option'):
+    keys = list(data.keys())
+    val = dialog(dialogType = "sheet", output = keys, title = f"Select {previous}")["index"]
+
+    if type(data[keys[val]]) == dict:
+        traverse_json(data[keys[val]], keys[val])
+    else:
+        newVal = dialog(title = f"Input value for {keys[val]}", hint = f"Current Value: {data[keys[val]]}")["text"]
+
+        try:
+            newVal = eval(newVal)
+        except (SyntaxError, NameError):
+            pass
+
+        if type(newVal) != type(data[keys[val]]):
+            choice = boolean[dialog(hint = f"{newVal} appears to be of an incorrect type. Do you wish to proceed?", dialogType = "confirm")["text"]]
+
+            if not choice:
+                exit()
+            elif data[keys[val]] is not None:
+                try:
+                    newVal = type(data[keys[val]])(newVal)
+                except TypeError:
+                    choice = boolean[dialog(hint = f"{newVal} could not be converted to correct type. Continue?", dialogType = "confirm")["text"]]
+                    if not choice:
+                        exit()
+
+        data[keys[val]] = newVal
+
+def config():
+    traverse_json(Config._CONFIG)
+    Config.write()
+
+def download(anime, download_dir):
+    toast = "termux-toast"
+    bg = Config._CONFIG["gui"]["toast-background"]
+    fg = Config._CONFIG["gui"]["toast-foreground"]
+
+    if bg != "default" and bg != "":
+        toast += f" -b {bg}"
+    if fg != "default" and fg != "":
+        toast += f" -c {fg}"
+
+    toast += " {} has downloaded successfully"
+
+    for episode in anime:
+        error = 1
+        while error != 0:
+            try:
+                name = f"{anime.title} Episode {episode.ep_no}"
+                error = subprocess.call(["aria2c", "-x", "12", "-s", "12", "-d", download_dir, "-o", f"{name}.mp4", episode.source().stream_url])
+                if error == 0:
+                    subprocess.getoutput(f"termux-media-scan '{download_dir}/{name}.mp4")
+                    subprocess.getoutput(toast.format(name))
+            except RequestException:
+                error = 1
+                cls = get_anime_class(anime.sitename)
+                newAnime = cls(anime.url)
+                episode = newAnime[episode.ep_no - 1]
+
+
+    subprocess.getoutput(toast.format(anime.title))
+
+def streamToPlayer(anime):
+    for episode in anime:
+        subprocess.getoutput(f"am start -a android.intent.action.VIEW -d '{episode.source().stream_url}' -t video/*")
+        input("Hit enter to continue...")
+
+def dl(stream = False, link = None):
+    if not link:
+        name = dialog(title = "Input Search", hint = "e.g Naruto")["text"]
+
+    options = ["quality", "provider", "download_dir", "episode range"] if not stream else ["quality", "provider", "episode range"]
+    
+    if link:
+        options.pop(options.index("provider"))
+
+    choices = []
+    try:
+        choices = [x["index"] for x in dialog(dialogType = "checkbox", output = options, title = "Select Options")["values"]]
+    except KeyError:
+        pass
+
+    quality = Config._CONFIG["dl"]["quality"]
+    provider = Config._CONFIG["dl"]["provider"]
+    download_dir = Config._CONFIG["dl"]["download_dir"]
+    file_format = Config._CONFIG["dl"]["file_format"]
+
+    if link and len(choices):
+        choices = [x if x == 0 else x + 1 for x in choices]
+    if stream and len(choices) != 0:
+        choices = [x if x != 2 else 3 for x in choices]
+
+    if 0 in choices:
+        quality = dialog(dialogType = "radio", output = ["360p", "480p", "720p", "1080p"])["text"]
+    if 1 in choices:
+        provider = dialog(dialogType = "radio", title = "Providers", output = [x[1] for x in ALL_ANIME_SITES])["text"]
+    if 2 in choices:
+        download_dir = dialog(title = "Enter Download Directory", hint = "/sdcard/Video")["text"]
+
+    if link:
+        cls = get_anime_class(link)
+        anime = cls(link)
+    else:
+        cls = get_anime_class(provider)
+        results = cls.search(name)
+        selected = dialog(dialogType = "radio", output = [x.title for x in results], title = "Anime")["index"]
+        anime = cls(results[selected].url, quality = quality)
+
+    if 3 in choices:
+        eps = [f"Episode {x}" for x in range(1, len(anime) + 1)]
+        selected_eps = [x["index"] for x in dialog(dialogType = "checkbox", output = eps, title = "Select Episode Range")["values"]]
+        anime = anime[selected_eps[0]:selected_eps[-1] + 1]
+
+    if stream:
+        streamToPlayer(anime)
+    else:
+        download(anime, download_dir)
+
+def watch(link = None):
+    dl(stream = True, link = link)
+
+def resume():
+    #TODO: Make watched episodes resumable
+    index = dialog(dialogType = "radio", title = "Select download_dir", output = ["Default (config)", "Custom"])["index"]
+    if index == 0:
+        path = Config._CONFIG["dl"]["download_dir"]
+    else:
+        path = dialog(title = "Select folder to resume downloads from", hint = "e.g. /sdcard/Video")["text"]
+    downloaded_anime = list(set([re.search("(.*) Episode \d+\.mp4", x).group(1) for x in os.listdir(path)]))
+    anime = dialog(title = "Select anime to resume", dialogType = "radio", output = downloaded_anime)["text"]
+    resume_ep = [int(re.search(f"{anime}.*Episode (\d+)\.mp4\.aria2", x).group(1)) for x in os.listdir(path) if re.search(f"{anime}.*Episode (\d+)\.mp4\.aria2", x)]
+
+    if not resume_ep:
+        resume_ep = [int(re.search(f"{anime} Episode (\d+)\.mp4", x).group(1)) for x in os.listdir(path) if re.search(f"{anime} Episode (\d+)\.mp4", x)]
+
+    cls = get_anime_class(Config._CONFIG["dl"]["provider"])
+    results = cls.search(anime)
+    titles = [x for x in results if x.title == anime]
+
+    if len(results) > 1 and not titles:
+        titles = [x.title for x in results]
+        chosen = dialog(dialogType = "radio", title = "Select anime", output = titles)["index"]
+        anime = results[index]
+    elif len(titles) != 1:
+        results = titles
+        titles = [x.title for x in results]
+        chosen = dialog(dialogType = "radio", title = "Select anime", output = titles)["index"]
+        anime = results[index]
+    else:
+        anime = results[0]
+
+    anime = cls(anime.url)
+    resume_ep.sort()
+    resume_ep = resume_ep[-1]
+    eps = [f"Episode {x}" for x in range(resume_ep, len(anime) + 1 - resume_ep)]
+    selected_ep = dialog(dialogType = "radio", output = eps, title = "Select Episode to finish on")["index"]
+    anime = anime[resume_ep:selected_ep + 1]
+    download(anime, path)
+
+
+if "gui" not in Config._CONFIG.keys():
+    Config._CONFIG["gui"] = {
+        'toast-background': 'default',
+        'toast-foreground': 'default'
+    }
+    Config._CONFIG["dl"]["download_dir"] = "/sdcard/Video"
+    Config.write()
+
+arg = dialog(dialogType = "radio", output = ["Download", "Watch", "Resume", "Config"], title = "Select Option")["text"]
+
+if arg == "Resume":
+    resume()
+else:
+    mapped = {"Download": "dl", "Config": "config", "Watch": "watch"}
+    arg = mapped[arg]
+    method = eval(arg)
+
+    if len(sys.argv) == 1:
+        method()
+    else:
+        method(link = sys.argv[1])
