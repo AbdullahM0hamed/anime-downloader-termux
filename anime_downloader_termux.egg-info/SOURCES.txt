@@ -1,8 +1,0 @@
-README.md
-setup.py
-termux-anime
-anime_downloader_termux.egg-info/PKG-INFO
-anime_downloader_termux.egg-info/SOURCES.txt
-anime_downloader_termux.egg-info/dependency_links.txt
-anime_downloader_termux.egg-info/requires.txt
-anime_downloader_termux.egg-info/top_level.txt
