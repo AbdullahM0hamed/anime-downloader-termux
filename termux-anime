@@ -5,6 +5,8 @@ import json
 import re
 import os
 import sys
+import tempfile
+from anime_downloader import util
 from anime_downloader.config import Config
 from anime_downloader.sites import get_anime_class, ALL_ANIME_SITES
 from requests.exceptions import RequestException
@@ -75,15 +77,27 @@ def download(anime, download_dir):
     for episode in anime:
         error = 1
         while error != 0:
+            prefix = tempfile.gettempdir() + '/'
+            
+            for item in os.listdir(prefix):
+                if os.path.isdir(prefix + item) and item.startswith("animedl"):
+                    if len(os.listdir(prefix + item)) == 0:
+                            os.rmdir(prefix + item)
+
             try:
-                name = f"{anime.title} Episode {episode.ep_no}"
-                error = subprocess.call(["aria2c", "-x", "12", "-s", "12", "-d", download_dir, "-o", f"{name}.mp4", episode.source().stream_url])
+                os.remove(prefix + 'anime-cache.sqlite')
+            except FileNotFoundError:
+                pass
+
+            try:
+                name = f"{anime[0]._parent.title} Episode {episode.ep_no}"
+                error = subprocess.call(["aria2c", "-x", "12", "-s", "12", "-d", download_dir, "-o", f"{name}.mp4", episode.source().stream_url, f"--referer={episode.source().referer}"])
                 if error == 0:
                     subprocess.getoutput(f"termux-media-scan '{download_dir}/{name}.mp4")
                     subprocess.getoutput(toast.format(name))
             except RequestException:
                 error = 1
-                cls = get_anime_class(anime.sitename)
+                cls = get_anime_class(anime[0]._parent.sitename)
                 newAnime = cls(anime.url)
                 episode = newAnime[episode.ep_no - 1]
 
@@ -137,9 +151,9 @@ def dl(stream = False, link = None):
         anime = cls(results[selected].url, quality = quality)
 
     if 3 in choices:
-        eps = [f"Episode {x}" for x in range(1, len(anime) + 1)]
-        selected_eps = [x["index"] for x in dialog(dialogType = "checkbox", output = eps, title = "Select Episode Range")["values"]]
-        anime = anime[selected_eps[0]:selected_eps[-1] + 1]
+        eps = [f"Episode {x[0]}" for x in anime._episode_urls]
+        selected_eps = [re.search("\d+", x["text"]).group() for x in dialog(dialogType = "checkbox", output = eps, title = "Select Episode Range")["values"]]
+        anime = util.parse_ep_str(anime, f"{selected_eps[0]}:{selected_eps[-1]}")
 
     if stream:
         streamToPlayer(anime)
@@ -184,7 +198,7 @@ def resume():
     resume_ep = resume_ep[-1]
     eps = [f"Episode {x}" for x in range(resume_ep, len(anime) + 1 - resume_ep)]
     selected_ep = dialog(dialogType = "radio", output = eps, title = "Select Episode to finish on")["index"]
-    anime = anime[resume_ep:selected_ep + 1]
+    anime = util.parse_ep_str(anime, f"{resume_ep}:{selected_ep}")
     download(anime, path)
 
 
